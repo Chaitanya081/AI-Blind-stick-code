@@ -1,0 +1,59 @@
+// Pin Definitions
+#define TRIG_PIN 9
+#define ECHO_PIN 10
+#define BUZZER_PIN 8
+#define RAIN_DIGITAL_PIN 7  // Digital output from rain sensor
+
+long duration;
+int distance;
+
+void setup() {
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(RAIN_DIGITAL_PIN, INPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  // Read Rain Sensor
+  int rainDetected = digitalRead(RAIN_DIGITAL_PIN);
+
+  // If rain is detected → continuous tone
+  if (rainDetected == LOW) { // LOW usually means water detected
+    Serial.println("Rain detected!");
+    tone(BUZZER_PIN, 2000); // High pitch alarm
+    delay(500);
+    noTone(BUZZER_PIN);
+    delay(500);
+    return; // Skip distance checking while raining
+  }
+
+  // ---- Ultrasonic Distance Measurement ----
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  duration = pulseIn(ECHO_PIN, HIGH);
+  distance = duration * 0.034 / 2; // in cm
+
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  // ---- Buzzer Control Based on Distance ----
+  if (distance > 0 && distance <= 100) {
+    // Map distance → beep delay (near = faster beeps)
+    int delayTime = map(distance, 5, 100, 80, 800);
+    delayTime = constrain(delayTime, 80, 800);
+
+    tone(BUZZER_PIN, 1000); // fixed tone
+    delay(delayTime / 2);
+    noTone(BUZZER_PIN);
+    delay(delayTime / 2);
+  } else {
+    noTone(BUZZER_PIN); // stop if out of range
+  }
+}
